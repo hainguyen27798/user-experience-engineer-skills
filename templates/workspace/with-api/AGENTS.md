@@ -30,6 +30,7 @@
 
 - `npm --prefix {{UI_DIRECTORY}} run dev` — start the frontend.
 - `npm --prefix {{UI_DIRECTORY}} run lint` — lint the frontend.
+- `npm --prefix {{UI_DIRECTORY}} run test` — run frontend unit tests in happy-dom.
 - `npm --prefix {{UI_DIRECTORY}} run build` — build the frontend.
 - `uv sync --project {{API_DIRECTORY}}` — install backend dependencies.
 - `uv run --project {{API_DIRECTORY}} fastapi dev {{API_DIRECTORY}}/src/{{API_MODULE}}/main.py` — start the API.

@@ -28,5 +28,6 @@
 
 - `npm --prefix {{UI_DIRECTORY}} run dev` — start the frontend.
 - `npm --prefix {{UI_DIRECTORY}} run lint` — lint the frontend.
+- `npm --prefix {{UI_DIRECTORY}} run test` — run frontend unit tests in happy-dom.
 - `npm --prefix {{UI_DIRECTORY}} run build` — build the frontend.
 - `./release.sh` — publish release artifacts from a clean checkout.

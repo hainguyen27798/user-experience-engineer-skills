@@ -98,7 +98,7 @@ func Create(ctx context.Context, options Options) (Result, error) {
 		return Result{}, err
 	}
 
-	fmt.Println("\nInstalling Nuxt, Nuxt UI, Tailwind CSS, and ESLint...")
+	fmt.Println("\nInstalling Nuxt, Nuxt UI, and frontend tooling...")
 	if err := runner.Run(
 		ctx,
 		uiDirectory,
@@ -108,7 +108,6 @@ func Create(ctx context.Context, options Options) (Result, error) {
 		"vue@latest",
 		"vue-router@latest",
 		"@nuxt/ui@latest",
-		"tailwindcss@latest",
 	); err != nil {
 		return Result{}, err
 	}
@@ -119,12 +118,17 @@ func Create(ctx context.Context, options Options) (Result, error) {
 		"install",
 		"--save-dev",
 		"@nuxt/eslint@latest",
+		"@vitejs/plugin-vue@latest",
+		"@vue/test-utils@latest",
 		"eslint@latest",
 		"eslint-plugin-prettier@latest",
 		"eslint-plugin-simple-import-sort@latest",
 		"eslint-plugin-unused-imports@latest",
+		"happy-dom@latest",
 		"prettier@latest",
+		"tailwindcss@latest",
 		"typescript@^6.0.3",
+		"vitest@latest",
 	); err != nil {
 		return Result{}, err
 	}
@@ -235,6 +239,7 @@ func scaffoldFrontend(targetDirectory, packageName string) error {
 		"package.json":            "frontend/package.json",
 		"nuxt.config.ts":          "frontend/nuxt.config.ts",
 		"tsconfig.json":           "frontend/tsconfig.json",
+		"vitest.config.ts":        "frontend/vitest.config.ts",
 		".prettierrc":             "frontend/prettierrc",
 		"eslint.config.mjs":       "frontend/eslint.config.mjs",
 		"AGENTS.md":               "AGENTS.md",

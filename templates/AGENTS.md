@@ -26,7 +26,7 @@ For every non-trivial frontend change, load `../.agents/skills/create-implementa
 - Keep route components in `app/pages/`, reusable UI in `app/components/`, stateful logic in `app/composables/`, and server behavior in `server/`.
 - Preserve SSR behavior; do not access browser-only globals outside client-safe lifecycle hooks.
 - Use semantic HTML, keyboard-accessible interactions, visible focus states, and sufficient contrast.
-- Run `npm run lint` after code changes and `npm run build` for changes that affect routing, configuration, modules, or SSR.
+- Run `npm run lint` after code changes, `npm run test` for tested frontend behavior, and `npm run build` for changes that affect routing, configuration, modules, or SSR.
 - Keep secrets in local environment files. Only expose values prefixed with `NUXT_PUBLIC_` when they are safe for browsers.
 - Taste and browser/design inspection tools must keep screenshots, reports, profiles, previews, caches, and history in an OS temporary directory outside the repository unless the user explicitly requests a deliverable.
 
@@ -35,4 +35,5 @@ For every non-trivial frontend change, load `../.agents/skills/create-implementa
 - `npm run dev` — start local development.
 - `npm run lint` — check JavaScript, TypeScript, and Vue files.
 - `npm run lint:fix` — apply safe ESLint fixes.
+- `npm run test` — run unit tests in happy-dom.
 - `npm run build` — produce a production build.

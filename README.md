@@ -46,7 +46,7 @@ Without `--api` or `--no-api`, the CLI asks whether to create FastAPI with uv.
 
 ```text
 my-project/
-├── my-project-ui/       # Nuxt, Nuxt UI, Tailwind CSS, ESLint
+├── my-project-ui/       # Nuxt, Nuxt UI, Tailwind CSS, Vitest, ESLint
 ├── my-project-api/      # FastAPI + uv, only when requested
 ├── .agents/
 │   ├── references/      # Current official Nuxt and Nuxt UI llms-full files

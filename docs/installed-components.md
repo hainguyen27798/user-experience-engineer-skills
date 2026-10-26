@@ -22,17 +22,21 @@ The generated `<project>-ui/package.json` receives these direct runtime dependen
 - `vue`
 - `vue-router`
 - `@nuxt/ui`
-- `tailwindcss`
 
 It also receives these direct development dependencies:
 
 - `@nuxt/eslint@latest`
+- `@vitejs/plugin-vue@latest`
+- `@vue/test-utils@latest`
 - `eslint@latest`
 - `eslint-plugin-prettier@latest`
 - `eslint-plugin-simple-import-sort@latest`
 - `eslint-plugin-unused-imports@latest`
+- `happy-dom@latest`
 - `prettier@latest`
+- `tailwindcss@latest`
 - `typescript@^6.0.3`
+- `vitest@latest`
 
 npm records the exact resolved dependency graph in `<project>-ui/package-lock.json`.
 

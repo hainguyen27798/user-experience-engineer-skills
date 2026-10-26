@@ -22,6 +22,7 @@ Run checks from the repository root with:
 
 ```bash
 npm --prefix {{UI_DIRECTORY}} run lint
+npm --prefix {{UI_DIRECTORY}} run test
 npm --prefix {{UI_DIRECTORY}} run build
 ```
 

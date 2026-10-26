@@ -69,7 +69,22 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 		"vue@latest",
 		"vue-router@latest",
 		"@nuxt/ui@latest",
+	})
+	assertCommand(t, runner.commands, "npm", []string{
+		"install",
+		"--save-dev",
+		"@nuxt/eslint@latest",
+		"@vitejs/plugin-vue@latest",
+		"@vue/test-utils@latest",
+		"eslint@latest",
+		"eslint-plugin-prettier@latest",
+		"eslint-plugin-simple-import-sort@latest",
+		"eslint-plugin-unused-imports@latest",
+		"happy-dom@latest",
+		"prettier@latest",
 		"tailwindcss@latest",
+		"typescript@^6.0.3",
+		"vitest@latest",
 	})
 	assertCommand(t, runner.commands, "git", []string{"init"})
 	assertCommand(t, runner.commands, "uv", []string{"add", "fastapi[standard]"})
@@ -88,7 +103,41 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "src", "demo_app_api", "main.py"), "/api/v1/health")
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "AGENTS.md"), "api/` owns HTTP routers")
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "README.md"), "infrastructure/")
+	assertFileContains(t, filepath.Join(target, "demo-app-ui", "package.json"), `"test": "vitest run --passWithNoTests"`)
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "nuxt.config.ts"), "'@nuxt/ui', '@nuxt/eslint'")
+	if got, want := readTestFile(t, filepath.Join(target, "demo-app-ui", "vitest.config.ts")), `import vue from '@vitejs/plugin-vue';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  plugins: [vue()],
+  test: {
+    environment: 'happy-dom',
+  },
+});
+`; got != want {
+		t.Fatalf("generated vitest.config.ts = %q, want happy-dom unit test config %q", got, want)
+	}
+	if got, want := readTestFile(t, filepath.Join(target, "demo-app-ui", "tsconfig.json")), `{
+  // https://nuxt.com/docs/guide/concepts/typescript
+  "files": [],
+  "references": [
+    {
+      "path": "./.nuxt/tsconfig.app.json"
+    },
+    {
+      "path": "./.nuxt/tsconfig.server.json"
+    },
+    {
+      "path": "./.nuxt/tsconfig.shared.json"
+    },
+    {
+      "path": "./.nuxt/tsconfig.node.json"
+    }
+  ]
+}
+`; got != want {
+		t.Fatalf("generated tsconfig.json = %q, want Nuxt default %q", got, want)
+	}
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "app/composables/")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "../.agents/skills/")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "Do not invent a new visual language")

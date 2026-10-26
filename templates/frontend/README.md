@@ -7,7 +7,7 @@ npm install
 npm run dev
 ```
 
-Run `npm run lint` for static checks and `npm run build` for routing, module, configuration, or SSR changes.
+Run `npm run lint` for static checks, `npm run test` for unit tests in happy-dom, and `npm run build` for routing, module, configuration, or SSR changes.
 
 ## Folder conventions
 

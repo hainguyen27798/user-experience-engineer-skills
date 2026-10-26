@@ -33,6 +33,7 @@ The API exposes `GET /api/v1/health`. Integrate the frontend through an explicit
 
 ```bash
 npm --prefix {{UI_DIRECTORY}} run lint
+npm --prefix {{UI_DIRECTORY}} run test
 npm --prefix {{UI_DIRECTORY}} run build
 uv run --project {{API_DIRECTORY}} python -m compileall {{API_DIRECTORY}}/src
 ```
