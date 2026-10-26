@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	projecttemplates "github.com/hainguyen27798/user-experience-engineer-skills/templates"
 )
 
 var projectNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
+var nuxtFallbackCompatibilityDatePattern = regexp.MustCompile(`\bfallbackCompatibilityDate\s*=\s*["'](\d{4}-\d{2}-\d{2})["']`)
 
 var workflowSkillIDs = []string{
 	"create-implementation-plan",
@@ -109,6 +111,13 @@ func Create(ctx context.Context, options Options) (Result, error) {
 		"vue-router@latest",
 		"@nuxt/ui@latest",
 	); err != nil {
+		return Result{}, err
+	}
+	compatibilityDate, err := readNuxtCompatibilityDate(uiDirectory)
+	if err != nil {
+		return Result{}, err
+	}
+	if err := writeFrontendNuxtConfig(uiDirectory, uiName, compatibilityDate); err != nil {
 		return Result{}, err
 	}
 	if err := runner.Run(
@@ -237,9 +246,9 @@ func scaffoldFrontend(targetDirectory, packageName string) error {
 	replacements := map[string]string{"UI_PACKAGE": packageName}
 	files := map[string]string{
 		"package.json":            "frontend/package.json",
-		"nuxt.config.ts":          "frontend/nuxt.config.ts",
 		"tsconfig.json":           "frontend/tsconfig.json",
 		"vitest.config.ts":        "frontend/vitest.config.ts",
+		".env.example":            "frontend/env.example",
 		".prettierrc":             "frontend/prettierrc",
 		"eslint.config.mjs":       "frontend/eslint.config.mjs",
 		"AGENTS.md":               "AGENTS.md",
@@ -262,6 +271,35 @@ func scaffoldFrontend(targetDirectory, packageName string) error {
 		}
 	}
 	return nil
+}
+
+func readNuxtCompatibilityDate(uiDirectory string) (string, error) {
+	path := filepath.Join(uiDirectory, "node_modules", "nuxt", "dist", "index.js")
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read installed Nuxt compatibility defaults: %w", err)
+	}
+	matches := nuxtFallbackCompatibilityDatePattern.FindSubmatch(contents)
+	if len(matches) != 2 {
+		return "", errors.New("installed Nuxt does not expose a fallback compatibility date")
+	}
+	compatibilityDate := string(matches[1])
+	if _, err := time.Parse(time.DateOnly, compatibilityDate); err != nil {
+		return "", fmt.Errorf("installed Nuxt fallback compatibility date %q is invalid: %w", compatibilityDate, err)
+	}
+	return compatibilityDate, nil
+}
+
+func writeFrontendNuxtConfig(targetDirectory, packageName, compatibilityDate string) error {
+	return writeRenderedTemplate(
+		filepath.Join(targetDirectory, "nuxt.config.ts"),
+		"frontend/nuxt.config.ts",
+		map[string]string{
+			"UI_PACKAGE":              packageName,
+			"NUXT_COMPATIBILITY_DATE": compatibilityDate,
+		},
+		0o644,
+	)
 }
 
 func configureAPI(targetDirectory string) (string, error) {

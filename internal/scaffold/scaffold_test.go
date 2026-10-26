@@ -31,6 +31,12 @@ func (runner *fakeRunner) Run(_ context.Context, directory, command string, args
 		mustWriteTestFile(filepath.Join(apiDirectory, "src", "demo_app_api", "__init__.py"), "")
 		mustWriteTestFile(filepath.Join(apiDirectory, "pyproject.toml"), "[project]\nname = \"demo-app-api\"\n")
 	}
+	if command == "npm" && slices.Contains(args, "nuxt@latest") {
+		mustWriteTestFile(
+			filepath.Join(directory, "node_modules", "nuxt", "dist", "index.js"),
+			"const fallbackCompatibilityDate = \"2099-12-31\";\n",
+		)
+	}
 	return nil
 }
 
@@ -104,7 +110,41 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "AGENTS.md"), "api/` owns HTTP routers")
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "README.md"), "infrastructure/")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "package.json"), `"test": "vitest run --passWithNoTests"`)
-	assertFileContains(t, filepath.Join(target, "demo-app-ui", "nuxt.config.ts"), "'@nuxt/ui', '@nuxt/eslint'")
+	if got, want := readTestFile(t, filepath.Join(target, "demo-app-ui", "nuxt.config.ts")), `// https://nuxt.com/docs/api/configuration/nuxt-config
+const isProduction = process.env.NODE_ENV === 'production';
+
+export default defineNuxtConfig({
+  runtimeConfig: {
+    public: {
+      apiBase: '/api',
+    },
+  },
+  devtools: { enabled: !isProduction },
+  sourcemap: {
+    client: !isProduction,
+    server: !isProduction,
+  },
+  nitro: {
+    compressPublicAssets: true,
+  },
+  app: {
+    head: {
+      htmlAttrs: { lang: 'en' },
+      title: 'demo-app-ui',
+      meta: [
+        { name: 'application-name', content: 'demo-app-ui' },
+        { name: 'color-scheme', content: 'light dark' },
+      ],
+    },
+  },
+  modules: ['@nuxt/ui', '@nuxt/eslint'],
+  css: ['~/assets/css/main.css'],
+  compatibilityDate: '2099-12-31',
+});
+`; got != want {
+		t.Fatalf("generated nuxt.config.ts = %q, want production-ready defaults %q", got, want)
+	}
+	assertFileContains(t, filepath.Join(target, "demo-app-ui", ".env.example"), "NUXT_PUBLIC_API_BASE=http://localhost:8000/api")
 	if got, want := readTestFile(t, filepath.Join(target, "demo-app-ui", "vitest.config.ts")), `import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
@@ -157,6 +197,19 @@ export default defineConfig({
 	}
 	if info.Mode().Perm()&0o111 == 0 {
 		t.Fatalf("release.sh mode = %o, want executable", info.Mode().Perm())
+	}
+}
+
+func TestReadNuxtCompatibilityDateRejectsInvalidInstalledDefault(t *testing.T) {
+	uiDirectory := t.TempDir()
+	mustWriteTestFile(
+		filepath.Join(uiDirectory, "node_modules", "nuxt", "dist", "index.js"),
+		"const fallbackCompatibilityDate = \"2099-99-99\";\n",
+	)
+
+	_, err := readNuxtCompatibilityDate(uiDirectory)
+	if err == nil || !strings.Contains(err.Error(), "fallback compatibility date") {
+		t.Fatalf("readNuxtCompatibilityDate() error = %v, want invalid fallback date", err)
 	}
 }
 

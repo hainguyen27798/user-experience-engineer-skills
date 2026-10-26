@@ -39,6 +39,7 @@ It also receives these direct development dependencies:
 - `vitest@latest`
 
 npm records the exact resolved dependency graph in `<project>-ui/package-lock.json`.
+After npm resolves Nuxt, the initializer reads that installed release's fallback compatibility date, validates it, and writes the resolved date into `<project>-ui/nuxt.config.ts`; the template does not pin a date independently of Nuxt.
 
 ## Optional Backend Library
 

@@ -24,6 +24,7 @@ For every non-trivial frontend change, load `../.agents/skills/create-implementa
 - Do not add one-off colors, fonts, spacing, radius, or shadows when an existing token fits. Keep raw visual values in the theme/token layer and record new reusable values in the design system.
 - Promote explicitly approved, reusable visual feedback into `docs/design-system.md`. Keep task-specific exceptions in the active plan; do not infer global preferences from a single correction.
 - Keep route components in `app/pages/`, reusable UI in `app/components/`, stateful logic in `app/composables/`, and server behavior in `server/`.
+- Use `runtimeConfig.public.apiBase` for browser API requests and override it with `NUXT_PUBLIC_API_BASE`; `/api` assumes same-origin deployment routing and does not create a proxy.
 - Preserve SSR behavior; do not access browser-only globals outside client-safe lifecycle hooks.
 - Use semantic HTML, keyboard-accessible interactions, visible focus states, and sufficient contrast.
 - Run `npm run lint` after code changes, `npm run test` for tested frontend behavior, and `npm run build` for changes that affect routing, configuration, modules, or SSR.

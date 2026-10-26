@@ -9,6 +9,8 @@ npm run dev
 
 Run `npm run lint` for static checks, `npm run test` for unit tests in happy-dom, and `npm run build` for routing, module, configuration, or SSR changes.
 
+Browser API requests should use `runtimeConfig.public.apiBase`, which defaults to `/api`. Copy `.env.example` to `.env` to target a separate local API through `NUXT_PUBLIC_API_BASE`; this setting does not configure a Nuxt proxy.
+
 ## Folder conventions
 
 ```text
