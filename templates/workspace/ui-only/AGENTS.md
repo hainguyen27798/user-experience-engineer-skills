@@ -6,6 +6,7 @@
 - `{{API_DIRECTORY}}/` does not exist. Create a backend only when the user explicitly requests one and selects its contract and persistence needs.
 - `.agents/skills/` owns project-local skills; `.agents/references/` owns downloaded official framework references; `.codex/agents/` owns Codex role definitions.
 - `plan/` owns implementation plans. Keep source, tests, dependencies, and service documentation inside their owning service directory.
+- Use exactly one plan file for all work intended to land in one commit or pull request. Reuse and update it across stages and services; create another plan only for a separate landing unit.
 
 ## Service conventions
 

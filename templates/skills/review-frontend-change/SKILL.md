@@ -13,4 +13,6 @@ Use the specialist skill that matches the review when needed:
 - Delegated diff review when explicitly requested: `cavecrew`.
 - UI/UX, accessibility, and responsive review: `ui-ux-pro-max`.
 
+When routing visual review to UI UX Pro Max or Taste, include the current approved color palette and semantic token mapping in the brief. Treat suggested or implemented colors outside that palette as a finding unless the user explicitly approved a palette change.
+
 If Taste is used for visual review, put screenshots, reports, browser profiles, generated previews, caches, and history in an OS temporary directory outside the repository and leave no tool artifacts behind.

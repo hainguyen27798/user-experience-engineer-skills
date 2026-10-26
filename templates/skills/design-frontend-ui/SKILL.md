@@ -9,6 +9,8 @@ Inspect the closest existing screens, layouts, tokens, components, and visual pa
 
 Define concrete implementation decisions by reusing evidenced layout, color roles, typography, type sizes, spacing, sizing, radius, borders, shadows, interaction states, responsive behavior, and accessibility patterns. Do not invent missing visual rules or let a generic design-skill recommendation override the project. If evidence is absent, conflicting, or materially ambiguous, stop and ask the user. Promote explicitly approved reusable decisions into the design system; keep request-specific exceptions local to the requested UI. Produce design decisions, not production markup.
 
+Before using either `ui-ux-pro-max` or `design-taste-frontend`, extract the current approved color palette and semantic token mapping from the design system, theme files, and closest existing UI, then include them in the skill brief. Accept only results that preserve that palette; reject or remap invented colors. A new palette requires an explicit user request and approval, followed by an update to the design system.
+
 Use `ui-ux-pro-max` only for guidance or checks that are mapped back to existing project evidence. It does not authorize a new style direction.
 
 When using `design-taste-frontend`, direct screenshots, reports, browser profiles, generated previews, caches, and history to an OS temporary directory outside the repository. Do not keep Taste artifacts unless the user explicitly requested that exact file as a deliverable.

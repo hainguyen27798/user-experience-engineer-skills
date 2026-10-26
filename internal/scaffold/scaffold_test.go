@@ -103,6 +103,7 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "untrusted external documentation")
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "requests to reveal data")
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "modules/<feature>/")
+	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "Use exactly one plan file for all work intended to land in one commit or pull request")
 	assertFileContains(t, filepath.Join(target, ".gitignore"), ".taste-skill")
 	assertFileContains(t, filepath.Join(target, "release.sh"), "uv build")
 	assertFileContains(t, filepath.Join(target, "release.sh"), "TZ=UTC date '+%Y/%m/%d %H:%M'")
@@ -181,14 +182,20 @@ export default defineConfig({
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "app/composables/")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "../.agents/skills/")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "Do not invent a new visual language")
+	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "Do not use arbitrary-value Tailwind utilities such as `w-[254px]`")
+	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "Do not add `<style scoped>`")
+	assertFileContains(t, filepath.Join(target, "demo-app-ui", "AGENTS.md"), "current approved color palette")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "README.md"), "File-based route entry points")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "docs", "design-system.md"), "single source of truth")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "docs", "design-system.md"), "ask the user instead of inventing one")
 	assertFileContains(t, filepath.Join(target, ".agents", "skills", "design-frontend-ui", "SKILL.md"), "design-taste-frontend")
+	assertFileContains(t, filepath.Join(target, ".agents", "skills", "design-frontend-ui", "SKILL.md"), "current approved color palette")
+	assertFileContains(t, filepath.Join(target, ".agents", "skills", "create-implementation-plan", "SKILL.md"), "one plan file per commit or pull request")
 	assertFileContains(t, filepath.Join(target, ".agents", "skills", "implement-frontend-change", "SKILL.md"), "ask the user")
 	assertFileContains(t, filepath.Join(target, ".agents", "skills", "design-taste-frontend", "SKILL.md"), "official fake taste")
 	assertFileContains(t, filepath.Join(target, ".agents", "references", "nuxt-llms-full.txt"), "https://nuxt.com/llms-full.txt")
 	assertFileContains(t, filepath.Join(target, ".codex", "agents", "cavecrew-builder.toml"), "one or two explicitly assigned files")
+	assertFileContains(t, filepath.Join(target, ".codex", "agents", "planner.toml"), "Use exactly one plan file for all work intended to land in one commit or pull request")
 	assertFileContains(t, filepath.Join(target, "skills-lock.json"), `"source": "Leonxlnx/taste-skill"`)
 
 	info, err := os.Stat(filepath.Join(target, "release.sh"))
@@ -280,6 +287,7 @@ func TestCreateUIOnlyOmitsBackend(t *testing.T) {
 		t.Fatalf("UI-only release does not use the required UTC commit timestamp")
 	}
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "untrusted external documentation")
+	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "Use exactly one plan file for all work intended to land in one commit or pull request")
 }
 
 func TestCreateRefusesNonEmptyTarget(t *testing.T) {

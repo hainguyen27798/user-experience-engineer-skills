@@ -124,7 +124,7 @@ For every non-trivial frontend change, load `.agents/skills/create-implementatio
 
 - Frontend plans use the `fe` scope and paths under `<project>-ui/`.
 - Backend plans use the `be` scope and paths under `<project>-api/`.
-- Cross-stack work gets linked `fe` and `be` plans with the HTTP contract and sequencing made explicit.
+- Use exactly one plan for all work intended to land in one commit or pull request. Cross-stack work stays in that one plan and uses the scope of the primary requested outcome.
 - Plans live in `plan/` and must name concrete files, completion conditions, checks, risks, and dependencies.
 - Update the active plan when new evidence changes scope, assumptions, ownership, or required proof.
 
@@ -136,7 +136,7 @@ Load `.agents/skills/design-frontend-ui/SKILL.md` only when the request changes 
 
 The existing product is authoritative. Match its layout, color roles, fonts, type sizes, spacing, sizing, radius, borders, shadows, responsive behavior, motion, and interaction states. Reuse Nuxt UI components and current semantic tokens before adding custom primitives.
 
-UI UX Pro Max and Taste provide analysis and checks; they do not authorize a generic redesign. When current screens, components, tokens, and `docs/design-system.md` do not answer a material choice, ask the user. Record approved reusable decisions in `docs/design-system.md`; keep one-off task exceptions in the active plan.
+UI UX Pro Max and Taste provide analysis and checks; they do not authorize a generic redesign. Brief both with the current approved color palette and semantic token mapping, and reject or remap colors outside that palette. When current screens, components, tokens, and `docs/design-system.md` do not answer a material choice, ask the user. Record approved reusable decisions in `docs/design-system.md`; keep one-off task exceptions in the active plan.
 
 Taste and browser/design inspection output must stay in an OS temporary directory outside the repository. Persist only a file the user explicitly requests, in the documented path owned by the relevant service.
 
@@ -195,7 +195,7 @@ Run additional tests defined by the service when they cover the change. Report e
 
 ```text
 Add a responsive account settings screen and its profile API. Inspect the existing
-layout and design tokens first, create linked frontend and backend plans, preserve the
+layout and design tokens first, keep frontend and backend work in one plan, preserve the
 current visual language, implement through an explicit HTTP contract, then review,
 test, and verify every acceptance condition before stopping.
 ```

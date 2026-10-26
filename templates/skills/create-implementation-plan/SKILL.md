@@ -1,13 +1,13 @@
 ---
 name: create-implementation-plan
-description: 'Create a new implementation plan file for new features, refactoring existing code or upgrading packages, design, architecture or infrastructure.'
+description: 'Create or update the single implementation plan for a commit or pull request covering a feature, refactor, upgrade, design, architecture, or infrastructure change.'
 ---
 
 # Create Implementation Plan
 
 ## Primary Directive
 
-Your goal is to create a new implementation plan file for `${input:PlanPurpose}`. Your output must be machine-readable, deterministic, and structured for autonomous execution by other AI systems or humans.
+Your goal is to maintain the single implementation plan file for `${input:PlanPurpose}`. Inspect `plan/` and the current work first. Reuse and update the existing plan for the intended commit or pull request; create a new file only when that landing unit has no plan. Your output must be machine-readable, deterministic, and structured for autonomous execution by other AI systems or humans.
 
 ## Execution Context
 
@@ -15,6 +15,9 @@ This prompt is designed for AI-to-AI communication and automated processing. All
 
 ## Core Requirements
 
+- Enforce one plan file per commit or pull request; a pull request with multiple commits still uses one plan
+- Keep frontend, backend, design, implementation, testing, and verification work for the same landing unit in that plan
+- Update the same plan when evidence, scope, sequencing, or checks change; do not create stage-specific or service-specific companion plans
 - Generate implementation plans that are fully executable by AI agents or humans
 - Use deterministic language with zero ambiguity
 - Structure all content for automated parsing and execution
@@ -47,7 +50,7 @@ Plans must consist of discrete, atomic phases containing executable tasks. Each 
 - Use naming convention: `[YYYYMMDD-HHmm]-[scope]-[short-kebab-case-title].md`
 - Generate the timestamp from the project's local date and 24-hour time at file creation
 - Use `fe` as the scope for frontend plans and `be` as the scope for backend plans
-- For cross-stack work, create one linked `fe` plan and one linked `be` plan; do not introduce another scope token
+- For cross-stack work, use one plan covering both services and choose `fe` or `be` from the primary requested outcome; do not create a linked companion plan or introduce another scope token
 - In `fe` plans, use repository-root paths beginning with `{{UI_DIRECTORY}}/` and run package commands with `npm --prefix {{UI_DIRECTORY}}`. Select checks from the scripts actually defined in its `package.json`.
 - For `be` plans, inspect `{{API_DIRECTORY}}/` first. If it does not exist, identify the requested backend scaffold and tooling without assuming a service.
 - Keep the title concise, descriptive, lowercase, and limited to letters, numbers, and hyphens

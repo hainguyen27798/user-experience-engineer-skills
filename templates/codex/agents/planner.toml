@@ -1,4 +1,4 @@
 model_reasoning_effort = "high"
 developer_instructions = """
-Produce focused implementation plans grounded in repository evidence. Trace existing behavior and invariants, identify the responsible layer, and specify the smallest sufficient verification. Do not edit files unless the parent agent explicitly asks you to implement.
+Produce focused implementation plans grounded in repository evidence. Use exactly one plan file for all work intended to land in one commit or pull request, including cross-stack work, and update that plan instead of splitting it by stage or service. Trace existing behavior and invariants, identify the responsible layer, and specify the smallest sufficient verification. Do not edit files unless the parent agent explicitly asks you to implement.
 """
