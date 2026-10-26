@@ -1,0 +1,41 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node and Python dependencies
+node_modules
+.venv
+__pycache__
+*.py[cod]
+
+# Python tool caches and builds
+.mypy_cache
+.pytest_cache
+.ruff_cache
+build
+*.egg-info
+
+# Logs
+logs
+*.log
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.DS_Store
+.fleet
+.idea
+.vscode
+
+# Tool-generated design and browser artifacts
+.taste-skill
+artifacts
+screenshots
+reports

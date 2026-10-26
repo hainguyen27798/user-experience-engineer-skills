@@ -1,0 +1,21 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+[agents.planner]
+description = "Plans implementation work from repository evidence before edits begin."
+config_file = "agents/planner.toml"
+
+[agents.reviewer]
+description = "Reviews changes for correctness, regressions, security, and missing tests."
+config_file = "agents/reviewer.toml"
+
+[agents.cavecrew-investigator]
+description = "Locates relevant code and returns compressed repository evidence."
+config_file = "agents/cavecrew-investigator.toml"
+
+[agents.cavecrew-builder]
+description = "Implements a narrowly assigned one- or two-file change."
+config_file = "agents/cavecrew-builder.toml"
+
+[agents.cavecrew-reviewer]
+description = "Reviews a requested diff and reports concise actionable findings."
+config_file = "agents/cavecrew-reviewer.toml"
