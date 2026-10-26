@@ -2,6 +2,9 @@
 set -eu
 
 repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+current_version="$(tr -d '[:space:]' < "${repo_root}/VERSION")"
+next_version="${current_version%.*}.$((${current_version##*.} + 1))"
+next_tag="v${next_version}"
 test_root="$(mktemp -d "${TMPDIR:-/tmp}/create-ux-engineer-release-test.XXXXXX")"
 trap 'rm -rf -- "${test_root}"' EXIT HUP INT TERM
 
@@ -104,16 +107,16 @@ if run_release >/dev/null 2>&1; then
   echo 'release unexpectedly succeeded during the simulated first upload failure' >&2
   exit 1
 fi
-test "$(cat "${work_dir}/VERSION")" = '0.1.1'
-test "$(git -C "${work_dir}" tag --list)" = 'v0.1.1'
+test "$(cat "${work_dir}/VERSION")" = "${next_version}"
+test "$(git -C "${work_dir}" tag --list)" = "${next_tag}"
 test "$(git -C "${work_dir}" rev-list --count HEAD)" = '2'
 test -z "$(git -C "${work_dir}" status --porcelain)"
 
 run_release >/dev/null
-test "$(cat "${work_dir}/VERSION")" = '0.1.1'
+test "$(cat "${work_dir}/VERSION")" = "${next_version}"
 test "$(git -C "${work_dir}" rev-list --count HEAD)" = '2'
 test -f "${state_dir}/released"
-test -n "$(git --git-dir="${remote_dir}" show-ref --tags v0.1.1)"
+test -n "$(git --git-dir="${remote_dir}" show-ref --tags "${next_tag}")"
 test -z "$(git -C "${work_dir}" status --porcelain)"
 
 echo 'release.sh bump and failed-upload resume checks passed.'
