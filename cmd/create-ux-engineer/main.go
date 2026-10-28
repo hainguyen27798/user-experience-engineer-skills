@@ -34,7 +34,7 @@ func run() error {
 		fmt.Fprintln(flag.CommandLine.Output(), "Create a Nuxt workspace in the current directory.")
 		fmt.Fprintln(flag.CommandLine.Output(), "\nUsage:")
 		fmt.Fprintln(flag.CommandLine.Output(), "  create-ux-engineer [--api|--no-api|--version]")
-		fmt.Fprintln(flag.CommandLine.Output(), "\nThe directory may contain existing .git metadata, but no worktree files.")
+		fmt.Fprintln(flag.CommandLine.Output(), "\nFull-stack setup requires an empty worktree. UI-only setup may add a new frontend to an existing worktree.")
 		fmt.Fprintln(flag.CommandLine.Output(), "The current directory base name becomes the project name.")
 		flag.PrintDefaults()
 	}
@@ -49,7 +49,7 @@ func run() error {
 		return errors.New("choose only one of --api or --no-api")
 	}
 	if flag.NArg() != 0 {
-		return errors.New("do not pass a path; cd into the empty project directory first")
+		return errors.New("do not pass a path; cd into the target project directory first")
 	}
 
 	if !includeAPI && !skipAPI {

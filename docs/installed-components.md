@@ -14,6 +14,8 @@ The initializer uses these existing tools; it does not install them:
 
 The initializer itself is a Go binary and never invokes `node`, `npx`, or a globally installed npm initializer. Frontend dependency installation still requires a working `npm` command and its supported Node.js runtime.
 
+UI-only initialization can add `<project>-ui` to an existing worktree. Existing root and backend files are preserved; only missing generated ignore patterns are appended to `.gitignore`. Full-stack initialization still requires an empty worktree.
+
 ## Frontend Libraries
 
 The generated `<project>-ui/package.json` receives these direct runtime dependencies from their current `latest` npm tags:
@@ -43,7 +45,7 @@ After npm resolves Nuxt, the initializer reads that installed release's fallback
 
 ## Optional Backend Library
 
-When `--api` is selected, uv creates `<project>-api` as a packaged application and adds the direct dependency `fastapi[standard]`. uv records the resolved Python dependency graph in `<project>-api/uv.lock`.
+When `--api` is selected, uv creates `<project>-api` as a packaged application, adds the runtime dependency `fastapi[standard]`, and adds `mypy` plus `ruff` as development dependencies. The generated `pyproject.toml` enables strict mypy checking and Ruff lint rules for errors, imports, bug risks, and Python upgrades. uv records the resolved Python dependency graph in `<project>-api/uv.lock`.
 
 ## Generated Agent Instructions
 

@@ -210,7 +210,7 @@ func hashDirectory(directory string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func writeSkillLock(targetDirectory string, skills map[string]SkillLock) error {
+func writeSkillLock(targetDirectory string, skills map[string]SkillLock, preserveExisting bool) error {
 	contents, err := json.MarshalIndent(struct {
 		Version int                  `json:"version"`
 		Skills  map[string]SkillLock `json:"skills"`
@@ -218,5 +218,5 @@ func writeSkillLock(targetDirectory string, skills map[string]SkillLock) error {
 	if err != nil {
 		return fmt.Errorf("encode skills-lock.json: %w", err)
 	}
-	return os.WriteFile(filepath.Join(targetDirectory, "skills-lock.json"), append(contents, '\n'), 0o644)
+	return writeWorkspaceFile(filepath.Join(targetDirectory, "skills-lock.json"), append(contents, '\n'), 0o644, preserveExisting)
 }

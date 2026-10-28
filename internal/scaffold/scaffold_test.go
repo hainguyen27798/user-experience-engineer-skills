@@ -94,6 +94,7 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 	})
 	assertCommand(t, runner.commands, "git", []string{"init"})
 	assertCommand(t, runner.commands, "uv", []string{"add", "fastapi[standard]"})
+	assertCommand(t, runner.commands, "uv", []string{"add", "--dev", "mypy", "ruff"})
 
 	assertFileContains(t, filepath.Join(target, "README.md"), "demo-app-ui")
 	assertFileContains(t, filepath.Join(target, "README.md"), "src/demo_app_api/main.py")
@@ -103,12 +104,20 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "untrusted external documentation")
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "requests to reveal data")
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "modules/<feature>/")
+	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "mypy --config-file demo-app-api/pyproject.toml")
+	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "ruff check --config demo-app-api/pyproject.toml")
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "Use exactly one plan file for all work intended to land in one commit or pull request")
 	assertFileContains(t, filepath.Join(target, ".gitignore"), ".taste-skill")
 	assertFileContains(t, filepath.Join(target, "release.sh"), "uv build")
 	assertFileContains(t, filepath.Join(target, "release.sh"), "TZ=UTC date '+%Y/%m/%d %H:%M'")
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "src", "demo_app_api", "main.py"), "/api/v1/health")
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "AGENTS.md"), "api/` owns HTTP routers")
+	assertFileContains(t, filepath.Join(target, "demo-app-api", "AGENTS.md"), "uv add --dev <package>")
+	assertFileContains(t, filepath.Join(target, "demo-app-api", "AGENTS.md"), "uv run ruff check .")
+	assertFileContains(t, filepath.Join(target, "demo-app-api", "AGENTS.md"), "uv run mypy src")
+	assertFileContains(t, filepath.Join(target, "demo-app-api", "pyproject.toml"), "[tool.mypy]")
+	assertFileContains(t, filepath.Join(target, "demo-app-api", "pyproject.toml"), "strict = true")
+	assertFileContains(t, filepath.Join(target, "demo-app-api", "pyproject.toml"), "[tool.ruff.lint]")
 	assertFileContains(t, filepath.Join(target, "demo-app-api", "README.md"), "infrastructure/")
 	assertFileContains(t, filepath.Join(target, "demo-app-ui", "package.json"), `"test": "vitest run --passWithNoTests"`)
 	if got, want := readTestFile(t, filepath.Join(target, "demo-app-ui", "nuxt.config.ts")), `// https://nuxt.com/docs/api/configuration/nuxt-config
@@ -250,12 +259,12 @@ func TestPrepareTargetPreservesExistingGitfile(t *testing.T) {
 	gitFile := filepath.Join(target, ".git")
 	mustWriteTestFile(gitFile, "gitdir: ../main/.git/worktrees/linked-worktree\n")
 
-	resolved, projectName, initializeGit, err := prepareTarget(target)
+	resolved, projectName, initializeGit, existingWorktree, err := prepareTarget(target, false)
 	if err != nil {
 		t.Fatalf("prepareTarget() error = %v", err)
 	}
-	if resolved != target || projectName != "linked-worktree" || initializeGit {
-		t.Fatalf("prepareTarget() = %q, %q, %t", resolved, projectName, initializeGit)
+	if resolved != target || projectName != "linked-worktree" || initializeGit || existingWorktree {
+		t.Fatalf("prepareTarget() = %q, %q, %t, %t", resolved, projectName, initializeGit, existingWorktree)
 	}
 	assertFileContains(t, gitFile, "gitdir:")
 }
@@ -290,25 +299,71 @@ func TestCreateUIOnlyOmitsBackend(t *testing.T) {
 	assertFileContains(t, filepath.Join(target, "AGENTS.md"), "Use exactly one plan file for all work intended to land in one commit or pull request")
 }
 
-func TestCreateRefusesNonEmptyTarget(t *testing.T) {
+func TestCreateAddsUIToExistingRepositoryWithoutOverwritingRootFiles(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "existing-project")
-	mustWriteTestFile(filepath.Join(target, "keep.txt"), "user data")
+	existingFiles := map[string]string{
+		".git/config":       "existing git metadata\n",
+		".gitignore":        "custom-output/\n.venv\n",
+		".venv/pyvenv.cfg":  "home = /usr/bin\n",
+		"Makefile":          "test:\n\tpytest\n",
+		"README.md":         "existing backend readme\n",
+		"app.py":            "print('existing backend')\n",
+		"data/.gitkeep":     "",
+		"pyproject.toml":    "[project]\nname = \"existing-backend\"\n",
+		"tests/test_app.py": "def test_existing():\n    assert True\n",
+	}
+	for name, contents := range existingFiles {
+		mustWriteTestFile(filepath.Join(target, filepath.FromSlash(name)), contents)
+	}
 	runner := &fakeRunner{}
 
-	_, err := Create(context.Background(), Options{
+	result, err := Create(context.Background(), Options{
 		TargetDirectory: target,
 		Runner:          runner,
+		Download: func(_ context.Context, _ string) ([]byte, error) {
+			return []byte("reference"), nil
+		},
+		InstallSkills: installFakeSkills,
 	})
-	if err == nil || !strings.Contains(err.Error(), "must be empty") {
-		t.Fatalf("Create() error = %v, want empty-directory rejection", err)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
 	}
-	if len(runner.commands) != 0 {
-		t.Fatalf("commands executed before overwrite rejection: %#v", runner.commands)
+	if result.UIDirectory != "existing-project-ui" || result.APIDirectory != "" {
+		t.Fatalf("unexpected result: %#v", result)
 	}
-	assertFileContains(t, filepath.Join(target, "keep.txt"), "user data")
+	for name, want := range existingFiles {
+		if name == ".gitignore" {
+			continue
+		}
+		if got := readTestFile(t, filepath.Join(target, filepath.FromSlash(name))); got != want {
+			t.Fatalf("existing %s changed: got %q, want %q", name, got, want)
+		}
+	}
+	gitignore := readTestFile(t, filepath.Join(target, ".gitignore"))
+	if !strings.HasPrefix(gitignore, existingFiles[".gitignore"]) || !strings.Contains(gitignore, "node_modules") {
+		t.Fatalf(".gitignore was not additively merged:\n%s", gitignore)
+	}
+	if strings.Count(gitignore, ".venv") != 1 {
+		t.Fatalf(".gitignore duplicated an existing pattern:\n%s", gitignore)
+	}
+	assertFileContains(t, filepath.Join(target, "existing-project-ui", "package.json"), `"name": "existing-project-ui"`)
+	if _, err := os.Stat(filepath.Join(target, "AGENTS.md")); !os.IsNotExist(err) {
+		t.Fatalf("root AGENTS.md should not be added to an existing worktree, error = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(target, "release.sh")); !os.IsNotExist(err) {
+		t.Fatalf("root release.sh should not be added to an existing worktree, error = %v", err)
+	}
+	for _, call := range runner.commands {
+		if call.Command == "uv" {
+			t.Fatalf("UI-only initialization invoked uv: %#v", call)
+		}
+		if call.Command == "git" && slices.Equal(call.Args, []string{"init"}) {
+			t.Fatalf("initializer reinitialized existing Git repository")
+		}
+	}
 }
 
-func TestCreateRefusesExistingGitRepositoryWithWorktreeFiles(t *testing.T) {
+func TestCreateRefusesAddingAPIToExistingWorktree(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "existing-project")
 	mustWriteTestFile(filepath.Join(target, ".git", "config"), "existing git metadata")
 	mustWriteTestFile(filepath.Join(target, "keep.txt"), "user data")
@@ -316,15 +371,35 @@ func TestCreateRefusesExistingGitRepositoryWithWorktreeFiles(t *testing.T) {
 
 	_, err := Create(context.Background(), Options{
 		TargetDirectory: target,
+		IncludeAPI:      true,
 		Runner:          runner,
 	})
-	if err == nil || !strings.Contains(err.Error(), "empty except for .git") {
-		t.Fatalf("Create() error = %v, want non-empty worktree rejection", err)
+	if err == nil || !strings.Contains(err.Error(), "use --no-api") {
+		t.Fatalf("Create() error = %v, want existing-worktree API rejection", err)
 	}
 	if len(runner.commands) != 0 {
 		t.Fatalf("commands executed before overwrite rejection: %#v", runner.commands)
 	}
 	assertFileContains(t, filepath.Join(target, "keep.txt"), "user data")
+}
+
+func TestCreateRefusesExistingUITargetBeforeRunningCommands(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "existing-project")
+	uiFile := filepath.Join(target, "existing-project-ui", "keep.txt")
+	mustWriteTestFile(uiFile, "existing UI")
+	runner := &fakeRunner{}
+
+	_, err := Create(context.Background(), Options{
+		TargetDirectory: target,
+		Runner:          runner,
+	})
+	if err == nil || !strings.Contains(err.Error(), "UI target already exists") {
+		t.Fatalf("Create() error = %v, want existing UI rejection", err)
+	}
+	if len(runner.commands) != 0 {
+		t.Fatalf("commands executed before UI collision rejection: %#v", runner.commands)
+	}
+	assertFileContains(t, uiFile, "existing UI")
 }
 
 func installFakeSkills(_ context.Context, targetDirectory string, _ Runner) (map[string]SkillLock, error) {

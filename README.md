@@ -1,6 +1,6 @@
 # create-ux-engineer
 
-A dependency-free Go CLI that turns an empty project directory, or an existing Git repository with an empty worktree, into a service-oriented UX engineering workspace.
+A dependency-free Go CLI that creates a service-oriented UX engineering workspace or adds a Nuxt frontend to an existing repository.
 
 ## Install or upgrade
 
@@ -26,7 +26,7 @@ The initializer has no Node.js entry point and never invokes `node` or `npx`. Go
 
 ## Usage
 
-Create or enter a project directory with no worktree files, then run the binary:
+Create or enter a project directory, then run the binary:
 
 ```bash
 mkdir my-project
@@ -36,7 +36,9 @@ cd my-project
 
 The current directory base name becomes the project name. The CLI intentionally accepts no path argument, so it cannot scaffold a different directory than the one shown by `pwd`.
 
-An existing `.git` directory or worktree gitfile is preserved, including its history, remotes, hooks, and configuration. The initializer skips `git init` in that case. Any other existing entry still blocks initialization to prevent overwriting user files.
+An existing `.git` directory or worktree gitfile is preserved, including its history, remotes, hooks, and configuration. The initializer skips `git init` in that case.
+
+Full-stack initialization with `--api` requires an empty worktree. UI-only initialization may run in an existing repository: it preserves existing root and backend files, creates a new `<project>-ui` service plus missing project tooling namespaces, and appends only missing patterns to the existing `.gitignore`. It refuses to run if `<project>-ui` already exists. Root `README.md`, `AGENTS.md`, and release files are generated only for a new workspace so an existing project's identity and commands are not replaced.
 
 Use `create-ux-engineer --api` to create both services or `create-ux-engineer --no-api` for frontend only.
 
@@ -186,6 +188,9 @@ npm --prefix <project>-ui run build
 
 # Backend, when present
 uv sync --project <project>-api
+uv run --project <project>-api ruff check --config <project>-api/pyproject.toml <project>-api
+uv run --project <project>-api ruff format --check --config <project>-api/pyproject.toml <project>-api
+uv run --project <project>-api mypy --config-file <project>-api/pyproject.toml <project>-api/src
 uv run --project <project>-api python -m compileall <project>-api/src
 ```
 

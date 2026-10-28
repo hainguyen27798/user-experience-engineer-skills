@@ -65,7 +65,7 @@ type Result struct {
 }
 
 func Create(ctx context.Context, options Options) (Result, error) {
-	targetDirectory, projectName, initializeGit, err := prepareTarget(options.TargetDirectory)
+	targetDirectory, projectName, initializeGit, existingWorktree, err := prepareTarget(options.TargetDirectory, options.IncludeAPI)
 	if err != nil {
 		return Result{}, err
 	}
@@ -93,6 +93,9 @@ func Create(ctx context.Context, options Options) (Result, error) {
 		if err := runner.Run(ctx, targetDirectory, "git", "init"); err != nil {
 			return Result{}, err
 		}
+	}
+	if err := mergeGitignore(filepath.Join(targetDirectory, ".gitignore")); err != nil {
+		return Result{}, err
 	}
 
 	fmt.Printf("\nCreating %s from scratch...\n", uiName)
@@ -163,6 +166,9 @@ func Create(ctx context.Context, options Options) (Result, error) {
 		if err := runner.Run(ctx, apiDirectory, "uv", "add", "fastapi[standard]"); err != nil {
 			return Result{}, err
 		}
+		if err := runner.Run(ctx, apiDirectory, "uv", "add", "--dev", "mypy", "ruff"); err != nil {
+			return Result{}, err
+		}
 		apiModule, err = configureAPI(apiDirectory)
 		if err != nil {
 			return Result{}, err
@@ -170,7 +176,7 @@ func Create(ctx context.Context, options Options) (Result, error) {
 	}
 
 	fmt.Println("\nWriting workspace files and project agents...")
-	if err := configureWorkspace(targetDirectory, projectName, apiModule); err != nil {
+	if err := configureWorkspace(targetDirectory, projectName, apiModule, existingWorktree); err != nil {
 		return Result{}, err
 	}
 
@@ -179,12 +185,12 @@ func Create(ctx context.Context, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if err := writeSkillLock(targetDirectory, locks); err != nil {
+	if err := writeSkillLock(targetDirectory, locks, existingWorktree); err != nil {
 		return Result{}, err
 	}
 
 	fmt.Println("\nDownloading current Nuxt and Nuxt UI references...")
-	if err := installReferences(ctx, targetDirectory, download); err != nil {
+	if err := installReferences(ctx, targetDirectory, download, existingWorktree); err != nil {
 		return Result{}, err
 	}
 
@@ -204,42 +210,68 @@ func Create(ctx context.Context, options Options) (Result, error) {
 	return result, nil
 }
 
-func prepareTarget(value string) (string, string, bool, error) {
+func prepareTarget(value string, includeAPI bool) (string, string, bool, bool, error) {
 	if strings.TrimSpace(value) == "" {
 		value = "."
 	}
 	targetDirectory, err := filepath.Abs(value)
 	if err != nil {
-		return "", "", false, fmt.Errorf("resolve target path: %w", err)
+		return "", "", false, false, fmt.Errorf("resolve target path: %w", err)
 	}
 	projectName := filepath.Base(targetDirectory)
 	if !projectNamePattern.MatchString(projectName) {
-		return "", "", false, errors.New("project directory name must use lowercase letters, numbers, dots, hyphens, or underscores")
+		return "", "", false, false, errors.New("project directory name must use lowercase letters, numbers, dots, hyphens, or underscores")
 	}
 
 	initializeGit := true
+	existingWorktree := false
 	entries, err := os.ReadDir(targetDirectory)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
 		if err := os.MkdirAll(targetDirectory, 0o755); err != nil {
-			return "", "", false, fmt.Errorf("create target directory: %w", err)
+			return "", "", false, false, fmt.Errorf("create target directory: %w", err)
 		}
 	case err != nil:
-		return "", "", false, fmt.Errorf("inspect target directory: %w", err)
-	case len(entries) == 1 && entries[0].Name() == ".git":
-		info, infoErr := entries[0].Info()
-		if infoErr != nil {
-			return "", "", false, fmt.Errorf("inspect existing .git metadata: %w", infoErr)
+		return "", "", false, false, fmt.Errorf("inspect target directory: %w", err)
+	default:
+		worktreeEntries := 0
+		for _, entry := range entries {
+			if entry.Name() == ".gitignore" {
+				info, infoErr := entry.Info()
+				if infoErr != nil {
+					return "", "", false, false, fmt.Errorf("inspect existing .gitignore: %w", infoErr)
+				}
+				if entry.Type()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+					return "", "", false, false, errors.New("existing .gitignore must be a regular file")
+				}
+			}
+			if entry.Name() != ".git" {
+				worktreeEntries++
+				continue
+			}
+			info, infoErr := entry.Info()
+			if infoErr != nil {
+				return "", "", false, false, fmt.Errorf("inspect existing .git metadata: %w", infoErr)
+			}
+			if entry.Type()&os.ModeSymlink != 0 || (!info.IsDir() && !info.Mode().IsRegular()) {
+				return "", "", false, false, errors.New("existing .git metadata must be a directory or regular gitfile")
+			}
+			initializeGit = false
 		}
-		if entries[0].Type()&os.ModeSymlink != 0 || (!info.IsDir() && !info.Mode().IsRegular()) {
-			return "", "", false, errors.New("existing .git metadata must be a directory or regular gitfile")
+		existingWorktree = worktreeEntries > 0
+		if existingWorktree && includeAPI {
+			return "", "", false, false, fmt.Errorf("cannot add FastAPI to non-empty target directory: %s; use --no-api to add only the UI", targetDirectory)
 		}
-		initializeGit = false
-	case len(entries) > 0:
-		return "", "", false, fmt.Errorf("target directory must be empty except for .git: %s (%d entries)", targetDirectory, len(entries))
 	}
 
-	return targetDirectory, projectName, initializeGit, nil
+	uiDirectory := filepath.Join(targetDirectory, projectName+"-ui")
+	if _, err := os.Lstat(uiDirectory); err == nil {
+		return "", "", false, false, fmt.Errorf("UI target already exists: %s", uiDirectory)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", "", false, false, fmt.Errorf("inspect UI target: %w", err)
+	}
+
+	return targetDirectory, projectName, initializeGit, existingWorktree, nil
 }
 
 func scaffoldFrontend(targetDirectory, packageName string) error {
@@ -326,10 +358,29 @@ func configureAPI(targetDirectory string) (string, error) {
 	if err := writeRenderedTemplate(filepath.Join(targetDirectory, "AGENTS.md"), "api/AGENTS.md", replacements, 0o644); err != nil {
 		return "", err
 	}
+	if err := appendRenderedTemplate(filepath.Join(targetDirectory, "pyproject.toml"), "api/pyproject-tools.toml"); err != nil {
+		return "", err
+	}
 	return modules[0], nil
 }
 
-func configureWorkspace(targetDirectory, projectName, apiModule string) error {
+func appendRenderedTemplate(destination, templateName string) error {
+	existing, err := os.ReadFile(destination)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", destination, err)
+	}
+	contents, err := renderTemplate(templateName, nil)
+	if err != nil {
+		return err
+	}
+	separator := "\n"
+	if len(existing) > 0 && existing[len(existing)-1] == '\n' {
+		separator = ""
+	}
+	return writeFile(destination, append(existing, []byte(separator+contents)...), 0o644)
+}
+
+func configureWorkspace(targetDirectory, projectName, apiModule string, existingWorktree bool) error {
 	variant := "ui-only"
 	if apiModule != "" {
 		variant = "with-api"
@@ -340,22 +391,21 @@ func configureWorkspace(targetDirectory, projectName, apiModule string) error {
 		"API_DIRECTORY": projectName + "-api",
 		"API_MODULE":    apiModule,
 	}
-	for _, name := range []string{"README.md", "AGENTS.md", "release.sh"} {
-		mode := os.FileMode(0o644)
-		if name == "release.sh" {
-			mode = 0o755
+	if !existingWorktree {
+		for _, name := range []string{"README.md", "AGENTS.md", "release.sh"} {
+			mode := os.FileMode(0o644)
+			if name == "release.sh" {
+				mode = 0o755
+			}
+			if err := writeRenderedTemplate(
+				filepath.Join(targetDirectory, name),
+				filepath.ToSlash(filepath.Join("workspace", variant, name)),
+				replacements,
+				mode,
+			); err != nil {
+				return err
+			}
 		}
-		if err := writeRenderedTemplate(
-			filepath.Join(targetDirectory, name),
-			filepath.ToSlash(filepath.Join("workspace", variant, name)),
-			replacements,
-			mode,
-		); err != nil {
-			return err
-		}
-	}
-	if err := writeRenderedTemplate(filepath.Join(targetDirectory, ".gitignore"), "workspace/gitignore", nil, 0o644); err != nil {
-		return err
 	}
 	if err := os.MkdirAll(filepath.Join(targetDirectory, "plan"), 0o755); err != nil {
 		return err
@@ -370,7 +420,7 @@ func configureWorkspace(targetDirectory, projectName, apiModule string) error {
 			contents = strings.TrimRight(contents, "\n") + "\n\n## Installed Base Skill Routing\n\n" + routing
 		}
 		destination := filepath.Join(targetDirectory, ".agents", "skills", skillID, "SKILL.md")
-		if err := writeFile(destination, []byte(contents), 0o644); err != nil {
+		if err := writeWorkspaceFile(destination, []byte(contents), 0o644, existingWorktree); err != nil {
 			return err
 		}
 	}
@@ -383,19 +433,73 @@ func configureWorkspace(targetDirectory, projectName, apiModule string) error {
 		"agents/cavecrew-builder.toml",
 		"agents/cavecrew-reviewer.toml",
 	} {
-		if err := writeRenderedTemplate(
-			filepath.Join(targetDirectory, ".codex", filepath.FromSlash(relativePath)),
-			"codex/"+relativePath,
-			nil,
-			0o644,
-		); err != nil {
+		contents, err := renderTemplate("codex/"+relativePath, nil)
+		if err != nil {
+			return err
+		}
+		if err := writeWorkspaceFile(filepath.Join(targetDirectory, ".codex", filepath.FromSlash(relativePath)), []byte(contents), 0o644, existingWorktree); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func installReferences(ctx context.Context, targetDirectory string, download Downloader) error {
+func mergeGitignore(path string) error {
+	generated, err := renderTemplate("workspace/gitignore", nil)
+	if err != nil {
+		return err
+	}
+	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return writeFile(path, []byte(generated), 0o644)
+	}
+	if err != nil {
+		return fmt.Errorf("inspect %s: %w", path, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return fmt.Errorf("existing .gitignore must be a regular file: %s", path)
+	}
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", path, err)
+	}
+	present := make(map[string]bool)
+	for _, line := range strings.Split(string(existing), "\n") {
+		present[strings.TrimSpace(line)] = true
+	}
+	var missing []string
+	for _, line := range strings.Split(generated, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "#") && !present[line] {
+			missing = append(missing, line)
+			present[line] = true
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	separator := "\n\n"
+	if len(existing) == 0 {
+		separator = ""
+	} else if existing[len(existing)-1] == '\n' {
+		separator = "\n"
+	}
+	contents := append(existing, []byte(separator+"# create-ux-engineer\n"+strings.Join(missing, "\n")+"\n")...)
+	return writeFile(path, contents, 0o644)
+}
+
+func writeWorkspaceFile(path string, contents []byte, mode os.FileMode, preserveExisting bool) error {
+	if preserveExisting {
+		if _, err := os.Lstat(path); err == nil {
+			return nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return writeFile(path, contents, mode)
+}
+
+func installReferences(ctx context.Context, targetDirectory string, download Downloader, preserveExisting bool) error {
 	for _, source := range referenceSources {
 		contents, err := download(ctx, source.URL)
 		if err != nil {
@@ -404,10 +508,11 @@ func installReferences(ctx context.Context, targetDirectory string, download Dow
 		if len(contents) == 0 || len(contents) > maxReferenceBytes {
 			return fmt.Errorf("invalid reference %s size: %d", source.URL, len(contents))
 		}
-		if err := writeFile(
+		if err := writeWorkspaceFile(
 			filepath.Join(targetDirectory, ".agents", "references", source.FileName),
 			contents,
 			0o644,
+			preserveExisting,
 		); err != nil {
 			return err
 		}

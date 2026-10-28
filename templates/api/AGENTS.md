@@ -15,6 +15,8 @@ Create a directory only when its first owned file is needed; do not add empty sc
 
 - Keep route handlers thin and move reusable behavior to its owning module.
 - Validate untrusted input at the HTTP boundary and enforce authorization again at the domain operation that owns it.
+- Manage runtime dependencies with `uv add <package>` and `uv remove <package>`. Manage development-only tools with `uv add --dev <package>` and `uv remove --dev <package>`; do not use `pip` or edit `uv.lock` by hand.
+- Commit `pyproject.toml` and `uv.lock` together whenever dependencies change. Keep direct dependencies limited to packages imported or invoked by this service.
 - Keep secrets in ignored environment files and commit only safe examples.
 - Integrate with the frontend through an explicit HTTP contract; never import frontend implementation code.
 - Add focused tests for behavior changes and run the smallest relevant checks before broader service checks.
@@ -23,4 +25,7 @@ Create a directory only when its first owned file is needed; do not add empty sc
 
 - `uv sync` — install locked dependencies.
 - `uv run fastapi dev src/{{API_MODULE}}/main.py` — start the development API.
+- `uv run ruff check .` — lint Python source and tests.
+- `uv run ruff format --check .` — verify Python formatting.
+- `uv run mypy src` — run strict static type checking.
 - `uv run python -m compileall src` — compile-check the service when no narrower test exists.
