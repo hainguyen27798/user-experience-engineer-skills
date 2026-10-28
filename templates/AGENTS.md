@@ -41,3 +41,8 @@ For every non-trivial frontend change, load `../.agents/skills/create-implementa
 - `npm run lint:fix` — apply safe ESLint fixes.
 - `npm run test` — run unit tests in happy-dom.
 - `npm run build` — produce a production build.
+
+## Branch and pull request workflow
+
+- Apply the repository-root branch and pull request rules to every frontend landing unit: use its own branch, run the frontend gates before pushing, and use `gh` when a pull request is requested.
+- Do not combine an unrelated UI change with API work. A cross-stack change that is intentionally one landing unit and one pull request uses one shared branch and the single shared plan.
