@@ -21,7 +21,7 @@ Use standard Go formatting and the standard library unless a dependency removes 
 
 ## Testing
 
-Tests live beside their Go package as `*_test.go`. Mock external commands and downloads. Cover observable behavior: empty-directory protection, command arguments, optional FastAPI setup, generated workspace files, root agent configuration, official skill lock data, current reference destinations, and the Taste temporary-artifact rule.
+Tests live beside their Go package as `*_test.go`. Mock external commands and downloads. Cover observable behavior: empty-directory protection, command arguments, optional FastAPI setup, update-mode isolation and rollback safety, generated workspace files, root agent configuration, official skill lock data, current reference destinations, and the Taste temporary-artifact rule.
 
 ## Branch and Pull Request Workflow
 
@@ -35,7 +35,7 @@ Tests live beside their Go package as `*_test.go`. Mock external commands and do
 
 ## Initializer Invariants
 
-The CLI derives the project name from the target directory and always creates a new `<project>-ui`. Full-stack initialization and `--api` require an empty worktree; UI-only initialization may run in an existing worktree when `<project>-ui` does not exist. In that mode, preserve existing root and backend files, merge only missing ignore patterns into `.gitignore`, and do not generate root README, AGENTS, or release files that could misdescribe the existing project. Preserve an existing `.git` directory or gitfile and skip `git init`. A failure may leave a partial project for inspection; never silently delete user files. Nuxt dependencies use latest stable npm tags. Caveman, UI UX Pro Max, and Taste come directly from their official default-branch HEAD; preserve their contents and record the resolved commit and hash. Taste and other design tools must keep temporary artifacts outside generated repositories.
+The CLI derives the project name from the target directory and always creates a new `<project>-ui`. Full-stack initialization and `--api` require an empty worktree; UI-only initialization may run in an existing worktree when `<project>-ui` does not exist. In that mode, preserve existing root and backend files, merge only missing ignore patterns into `.gitignore`, and do not generate root README, AGENTS, or release files that could misdescribe the existing project. Preserve an existing `.git` directory or gitfile and skip `git init`. AI-assisted setup is opt-in, defaults to no, preflights Codex before scaffold commands, and limits Codex writes to an isolated staging workspace before allowlisted rule files are promoted; the existing-code prompt must preserve current code ownership and ask which template conventions actually fit. Reject symlinks in managed agent paths. A failure may leave a partial project for inspection; never silently delete user files. Nuxt dependencies use latest stable npm tags. Caveman, UI UX Pro Max, and Taste come directly from their official default-branch HEAD; preserve their contents and record the resolved commit and hash. Taste and other design tools must keep temporary artifacts outside generated repositories.
 
 ## CLI Release Invariants
 
