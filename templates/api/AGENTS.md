@@ -29,3 +29,8 @@ Create a directory only when its first owned file is needed; do not add empty sc
 - `uv run ruff format --check .` — verify Python formatting.
 - `uv run mypy src` — run strict static type checking.
 - `uv run python -m compileall src` — compile-check the service when no narrower test exists.
+
+## Branch and pull request workflow
+
+- Apply the repository-root branch and pull request rules to every backend landing unit: use its own branch, run the API gates before pushing, and use `gh` when a pull request is requested.
+- Do not combine an unrelated API change with UI work. A cross-stack change that is intentionally one landing unit and one pull request uses one shared branch and the single shared plan.

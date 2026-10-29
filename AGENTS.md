@@ -23,6 +23,16 @@ Use standard Go formatting and the standard library unless a dependency removes 
 
 Tests live beside their Go package as `*_test.go`. Mock external commands and downloads. Cover observable behavior: empty-directory protection, command arguments, optional FastAPI setup, generated workspace files, root agent configuration, official skill lock data, current reference destinations, and the Taste temporary-artifact rule.
 
+## Branch and Pull Request Workflow
+
+- Give every independently reviewable landing unit (`feat`, `fix`, `refactor`, `chore`, `docs`, `test`, and similar) its own branch. Do not implement directly on `main` or mix unrelated landing units in one branch.
+- Unless the user explicitly requests another name, use `<type>/<short-kebab-description>` so the prefix states the work category, for example `feat/profile-page`, `fix/token-refresh`, or `chore/update-tooling`.
+- Before pushing, run the smallest relevant checks followed by the affected repository gate. Do not push known failures without explicitly reporting them.
+- When the user requests a pull request, push the branch and create or update the PR with `gh`; do not stop after printing a compare URL or manual instructions.
+- Use a Conventional Commits PR title: `<type>(<optional-scope>): <imperative summary>`.
+- Structure the PR body with `Summary`, `Changes`, `Verification`, and `Risks and rollback`. Record exact commands and results under `Verification`, and link the issue or plan when one exists.
+- After creating or updating the PR, inspect its configured checks with `gh pr checks`. A PR is ready only when every required check passes; otherwise fix the failure or report the exact blocked or unavailable gate without claiming readiness.
+
 ## Initializer Invariants
 
 The CLI derives the project name from the target directory and always creates a new `<project>-ui`. Full-stack initialization and `--api` require an empty worktree; UI-only initialization may run in an existing worktree when `<project>-ui` does not exist. In that mode, preserve existing root and backend files, merge only missing ignore patterns into `.gitignore`, and do not generate root README, AGENTS, or release files that could misdescribe the existing project. Preserve an existing `.git` directory or gitfile and skip `git init`. A failure may leave a partial project for inspection; never silently delete user files. Nuxt dependencies use latest stable npm tags. Caveman, UI UX Pro Max, and Taste come directly from their official default-branch HEAD; preserve their contents and record the resolved commit and hash. Taste and other design tools must keep temporary artifacts outside generated repositories.
