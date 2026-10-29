@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -48,6 +49,7 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 	result, err := Create(context.Background(), Options{
 		TargetDirectory: target,
 		IncludeAPI:      true,
+		UseCodex:        true,
 		Runner:          runner,
 		Download: func(_ context.Context, url string) ([]byte, error) {
 			return []byte("reference from " + url), nil
@@ -93,8 +95,30 @@ func TestCreateBuildsCompleteWorkspaceWithoutNodeOrNPXInitializer(t *testing.T) 
 		"vitest@latest",
 	})
 	assertCommand(t, runner.commands, "git", []string{"init"})
+	assertCommand(t, runner.commands, "codex", []string{"login", "status"})
 	assertCommand(t, runner.commands, "uv", []string{"add", "fastapi[standard]"})
 	assertCommand(t, runner.commands, "uv", []string{"add", "--dev", "mypy", "ruff"})
+	var codexPrompt string
+	loginIndex, gitIndex, postinstallIndex, execIndex := -1, -1, -1, -1
+	for index, call := range runner.commands {
+		switch {
+		case call.Command == "codex" && slices.Equal(call.Args, []string{"login", "status"}):
+			loginIndex = index
+		case call.Command == "git" && slices.Equal(call.Args, []string{"init"}):
+			gitIndex = index
+		case call.Command == "npm" && slices.Equal(call.Args, []string{"run", "postinstall"}):
+			postinstallIndex = index
+		case call.Command == "codex" && slices.Contains(call.Args, "exec"):
+			execIndex = index
+			codexPrompt = call.Args[len(call.Args)-1]
+		}
+	}
+	if loginIndex == -1 || gitIndex == -1 || postinstallIndex == -1 || execIndex == -1 || !(loginIndex < gitIndex && postinstallIndex < execIndex) {
+		t.Fatalf("Codex preflight/reconciliation order is invalid: %#v", runner.commands)
+	}
+	if !strings.Contains(codexPrompt, "newly initialized create-ux-engineer workspace") {
+		t.Fatalf("new-project Codex prompt is incorrect:\n%s", codexPrompt)
+	}
 
 	assertFileContains(t, filepath.Join(target, "README.md"), "demo-app-ui")
 	assertFileContains(t, filepath.Join(target, "README.md"), "src/demo_app_api/main.py")
@@ -282,6 +306,7 @@ func TestCreateUIOnlyOmitsBackend(t *testing.T) {
 	target := filepath.Join(t.TempDir(), "frontend-only")
 	result, err := Create(context.Background(), Options{
 		TargetDirectory: target,
+		UseCodex:        true,
 		Runner:          &fakeRunner{},
 		Download: func(_ context.Context, _ string) ([]byte, error) {
 			return []byte("reference"), nil
@@ -331,6 +356,7 @@ func TestCreateAddsUIToExistingRepositoryWithoutOverwritingRootFiles(t *testing.
 
 	result, err := Create(context.Background(), Options{
 		TargetDirectory: target,
+		UseCodex:        true,
 		Runner:          runner,
 		Download: func(_ context.Context, _ string) ([]byte, error) {
 			return []byte("reference"), nil
@@ -372,6 +398,33 @@ func TestCreateAddsUIToExistingRepositoryWithoutOverwritingRootFiles(t *testing.
 		if call.Command == "git" && slices.Equal(call.Args, []string{"init"}) {
 			t.Fatalf("initializer reinitialized existing Git repository")
 		}
+	}
+	var codexPrompt string
+	for _, call := range runner.commands {
+		if call.Command == "codex" && slices.Contains(call.Args, "exec") {
+			codexPrompt = call.Args[len(call.Args)-1]
+		}
+	}
+	if !strings.Contains(codexPrompt, "pre-existing root and backend code") {
+		t.Fatalf("existing-project Codex prompt is incorrect:\n%s", codexPrompt)
+	}
+}
+
+func TestCreatePreflightsRequestedCodexBeforeScaffolding(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "existing-project")
+	mustWriteTestFile(filepath.Join(target, ".git", "config"), "existing git metadata")
+	codexError := errors.New("codex authentication failed")
+
+	_, err := Create(context.Background(), Options{
+		TargetDirectory: target,
+		UseCodex:        true,
+		Runner:          updateErrorRunner{err: codexError},
+	})
+	if !errors.Is(err, codexError) {
+		t.Fatalf("Create() error = %v, want Codex preflight failure", err)
+	}
+	if _, err := os.Stat(filepath.Join(target, "existing-project-ui")); !os.IsNotExist(err) {
+		t.Fatalf("UI was scaffolded before Codex preflight passed, error = %v", err)
 	}
 }
 

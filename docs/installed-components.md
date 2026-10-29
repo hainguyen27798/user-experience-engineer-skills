@@ -9,12 +9,17 @@ The initializer uses these existing tools; it does not install them:
 | Tool | When required | Purpose |
 | --- | --- | --- |
 | `git` | Always | Preserve an existing repository or initialize a new one, and clone official skill sources. |
-| `npm` | Always | Install and run the Nuxt frontend dependencies. |
+| `npm` | Initialization | Install and run the Nuxt frontend dependencies. |
 | `uv` | Only with `--api` | Create and manage the FastAPI service. |
+| `codex` | Opt-in initialization and `--update` | Inspect the project and reconcile agent rules after generated or refreshed inputs are ready. |
 
 The initializer itself is a Go binary and never invokes `node`, `npx`, or a globally installed npm initializer. Frontend dependency installation still requires a working `npm` command and its supported Node.js runtime.
 
 UI-only initialization can add `<project>-ui` to an existing worktree. Existing root and backend files are preserved; only missing generated ignore patterns are appended to `.gitignore`. Full-stack initialization still requires an empty worktree.
+
+`--update` does not scaffold UI or API services and does not invoke npm or uv. It transactionally refreshes official third-party skills, current framework references, and `skills-lock.json`, then invokes the authenticated Codex CLI to reconcile project-specific agent rules. Codex writes in an isolated temporary workspace outside the repository; the CLI rejects output outside the agent-rule allowlist before promoting changes to the project.
+
+Normal initialization asks before invoking Codex and defaults to no. When approved, Codex authentication is checked before scaffold commands; after setup, Codex receives either a new-workspace prompt or a stricter existing-code integration prompt. Both prompts ask it to evaluate which template and CLI conventions fit the actual project rather than applying them mechanically.
 
 ## Frontend Libraries
 

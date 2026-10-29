@@ -52,6 +52,7 @@ var workflowRouting = map[string]string{
 type Options struct {
 	TargetDirectory string
 	IncludeAPI      bool
+	UseCodex        bool
 	Runner          Runner
 	Download        Downloader
 	InstallSkills   SkillInstaller
@@ -69,6 +70,9 @@ func Create(ctx context.Context, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	if err := rejectManagedSymlinks(targetDirectory); err != nil {
+		return Result{}, err
+	}
 
 	runner := options.Runner
 	if runner == nil {
@@ -81,6 +85,11 @@ func Create(ctx context.Context, options Options) (Result, error) {
 	installSkills := options.InstallSkills
 	if installSkills == nil {
 		installSkills = installOfficialSkills
+	}
+	if options.UseCodex {
+		if err := checkCodex(ctx, targetDirectory, runner); err != nil {
+			return Result{}, err
+		}
 	}
 
 	uiName := projectName + "-ui"
@@ -197,6 +206,12 @@ func Create(ctx context.Context, options Options) (Result, error) {
 	fmt.Println("\nPreparing Nuxt types and ESLint config...")
 	if err := runner.Run(ctx, uiDirectory, "npm", "run", "postinstall"); err != nil {
 		return Result{}, err
+	}
+	if options.UseCodex {
+		fmt.Println("\nAsking Codex to inspect the project and reconcile agent rules...")
+		if err := reconcileProjectRules(ctx, targetDirectory, runner, codexCreatePrompt(existingWorktree)); err != nil {
+			return Result{}, fmt.Errorf("run Codex rule reconciliation: %w", err)
+		}
 	}
 
 	result := Result{

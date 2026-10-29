@@ -12,7 +12,7 @@ curl -fsSL https://github.com/hainguyen27798/user-experience-engineer-skills/rel
 
 The installer supports amd64 and arm64, verifies the archive's SHA-256 checksum, and atomically replaces an existing binary. Set `CREATE_UX_ENGINEER_INSTALL_DIR` to use another binary directory.
 
-Requires Go 1.27 to build, plus `git` and `npm` at runtime. `uv` is required only when FastAPI is selected.
+Requires Go 1.27 to build. At runtime, `git` is always required, `npm` is required for initialization, `uv` only when FastAPI is selected, and an authenticated `codex` CLI for `--update` or optional AI-assisted setup.
 
 ## Build
 
@@ -43,6 +43,18 @@ Full-stack initialization with `--api` requires an empty worktree. UI-only initi
 Use `create-ux-engineer --api` to create both services or `create-ux-engineer --no-api` for frontend only.
 
 Without `--api` or `--no-api`, the CLI asks whether to create FastAPI with uv.
+
+Every initialization also asks whether Codex may inspect the resulting project and reconcile its agent rules; the default is no. Consent is collected before setup, and an affirmative answer triggers a Codex authentication preflight before any git, npm, or uv command. After setup, Codex evaluates how the initializer's templates and conventions fit the actual project instead of applying generic rules mechanically. It receives the real project as read-only evidence and writes only in an isolated temporary workspace outside the repository. The CLI rejects non-rule output and promotes only allowlisted `AGENTS.md`, `.codex`, and repository-owned workflow-skill files. For a repository with existing code, the prompt also requires the existing root and backend ownership to remain authoritative.
+
+### Update an existing project
+
+Run the update mode from an existing Git project to refresh its official skills, framework references, lock data, and agent rules without scaffolding services or installing application dependencies:
+
+```bash
+create-ux-engineer --update
+```
+
+The `--update` flag itself is explicit consent to invoke Codex. Update mode requires an authenticated `codex` CLI. It stages and validates all downloaded skills and references before replacing their managed destinations, with rollback on promotion failure. It then gives Codex read-only access to project evidence while confining writes to an isolated staging workspace. Only validated agent-rule output is promoted back. Application code, dependencies, release/deployment files, official skills, references, Git history, and remote state are outside that allowlist. If Codex fails after managed-input promotion, the verified managed inputs remain updated for inspection and a safe retry.
 
 ## Generated workspace
 
